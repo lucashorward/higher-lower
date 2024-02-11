@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"math/rand"
 	"net/http"
@@ -54,7 +53,6 @@ func createGameHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
-	fmt.Println(newGame)
 	gameId := uuid.NewString()
 	answer := rand.Intn(newGame.Max-newGame.Min) + newGame.Min
 
@@ -77,9 +75,7 @@ func guessHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
-	fmt.Println(guess)
 	savedGame := games[guess.GameId]
-	fmt.Println(savedGame)
 	if savedGame.Ended {
 		jsonResponse, _ := json.Marshal(savedGame)
 		w.Write(jsonResponse)
@@ -94,7 +90,7 @@ func guessHandler(w http.ResponseWriter, r *http.Request) {
 		message = "Excelsior, you win!!"
 	} else if guess.Guess > savedGame.answer {
 		result = TooHigh
-		message = "Fiddlesticks, that's a too high"
+		message = "Fiddlesticks, that's too high"
 	} else {
 		result = TooLow
 		message = "Dingleberries, that's too low!"
@@ -111,10 +107,17 @@ func guessHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonResponse)
 }
 
+func allGamesHandler(w http.ResponseWriter, r *http.Request) {
+	jsonResponse, _ := json.Marshal(games)
+	w.Write(jsonResponse)
+}
+
 func main() {
+	log.Println("Starting, stand by")
 	http.HandleFunc("/game", createGameHandler)
 	http.HandleFunc("/guess", guessHandler)
+	http.HandleFunc("/games", allGamesHandler)
 
-	log.Println("Go!")
+	log.Println("Server is up! Go play :)")
 	http.ListenAndServe(":8080", nil)
 }
