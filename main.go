@@ -118,9 +118,9 @@ func allGamesHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	log.Println("Starting, stand by")
-	http.HandleFunc("/game", createGameHandler)
-	http.HandleFunc("/guess", guessHandler)
-	http.HandleFunc("/games", allGamesHandler)
+	http.HandleFunc("POST /game", createGameHandler)
+	http.HandleFunc("POST /guess", guessHandler)
+	http.HandleFunc("GET /games", allGamesHandler)
 
 	log.Println("Server is up! Go play :)")
 	http.ListenAndServe(":8080", nil)
