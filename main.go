@@ -25,10 +25,11 @@ type newGame struct {
 }
 
 type game struct {
-	Id     string `json:"id"`
-	Result string `json:"result"`
-	Ended  bool   `json:"ended"`
-	answer int
+	Id      string `json:"id"`
+	Result  string `json:"result"`
+	Ended   bool   `json:"ended"`
+	answer  int
+	Message string `json:"message"`
 }
 
 type guess struct {
@@ -36,14 +37,12 @@ type guess struct {
 	Guess  int    `json:"guess"`
 }
 
-// String - Creating common behavior - give the type a String function
-func (d Result) String() string {
-	return [...]string{"TooLow", "TooHigh", "Equal", "None"}[d]
+func (result Result) String() string {
+	return [...]string{"TooLow", "TooHigh", "Equal", "None"}[result]
 }
 
-// EnumIndex - Creating common behavior - give the type a EnumIndex functio
-func (d Result) EnumIndex() int {
-	return int(d)
+func (result Result) EnumIndex() int {
+	return int(result)
 }
 
 var games = make(map[string]*game)
@@ -64,6 +63,7 @@ func createGameHandler(w http.ResponseWriter, r *http.Request) {
 		Result.String(None),
 		false,
 		answer,
+		"Welcome to the game!",
 	}
 	games[gameId] = createdGame
 	jsonResponse, _ := json.Marshal(createdGame)
@@ -87,19 +87,24 @@ func guessHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	var result Result
 	ended := false
+	var message string
 	if guess.Guess == savedGame.answer {
 		result = Equal
 		ended = true
+		message = "Excelsior, you win!!"
 	} else if guess.Guess > savedGame.answer {
 		result = TooHigh
+		message = "Fiddlesticks, that's a too high"
 	} else {
 		result = TooLow
+		message = "Dingleberries, that's too low!"
 	}
 	updatedGame := &game{
 		savedGame.Id,
 		Result.String(result),
 		ended,
 		savedGame.answer,
+		message,
 	}
 	games[savedGame.Id] = updatedGame
 	jsonResponse, _ := json.Marshal(updatedGame)
