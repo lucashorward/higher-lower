@@ -75,7 +75,11 @@ func guessHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
-	savedGame := games[guess.GameId]
+	savedGame, exists := games[guess.GameId]
+	if !exists {
+		http.Error(w, "The requested game does not exist", http.StatusBadRequest)
+		return
+	}
 	if savedGame.Ended {
 		jsonResponse, _ := json.Marshal(savedGame)
 		w.Write(jsonResponse)
