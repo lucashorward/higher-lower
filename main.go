@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
@@ -80,17 +81,6 @@ func CreateGame(inputData *newGame) (*game, error) {
 	return createdGame, nil
 }
 
-// CreateGame, wrapped into a HTTP endpoint
-func createGameHandler(w http.ResponseWriter, r *http.Request, newGame *newGame) {
-	createdGame, gameErr := CreateGame(newGame)
-	if gameErr != nil {
-		http.Error(w, gameErr.Error(), http.StatusInternalServerError)
-		return
-	}
-	jsonResponse, _ := json.Marshal(createdGame)
-	w.Write(jsonResponse)
-}
-
 /*
 - Core guessing functionality.
 
@@ -101,13 +91,13 @@ func createGameHandler(w http.ResponseWriter, r *http.Request, newGame *newGame)
 func Guess(inputGuess *guess) (*game, error) {
 	savedGame, exists := games[inputGuess.GameId]
 	if !exists {
-		return &game{}, errors.New("The requested game does not exist")
+		return &game{}, errors.New("400 The requested game does not exist")
 	}
 	if savedGame.Ended {
 		return savedGame, nil
 	}
 	if inputGuess.Guess > savedGame.max || inputGuess.Guess < savedGame.min {
-		return &game{}, errors.New("Guess is out of bounds, must be between " + strconv.Itoa(savedGame.min) + " and " + strconv.Itoa(savedGame.max))
+		return &game{}, errors.New("400 Guess is out of bounds, must be between " + strconv.Itoa(savedGame.min) + " and " + strconv.Itoa(savedGame.max))
 	}
 	var result Result
 	ended := false
@@ -136,7 +126,7 @@ func Guess(inputGuess *guess) (*game, error) {
 	return updatedGame, nil
 }
 
-func decodeAndValidate[T any](inputFunction func(http.ResponseWriter, *http.Request, T)) func(http.ResponseWriter, *http.Request) {
+func httpWrapper[T any, K any](inputFunction func(T) (K, error)) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		decoder := json.NewDecoder(r.Body)
 		object := new(T)
@@ -151,25 +141,18 @@ func decodeAndValidate[T any](inputFunction func(http.ResponseWriter, *http.Requ
 			http.Error(w, validationError.Error(), http.StatusBadRequest)
 			return
 		}
-		inputFunction(w, r, *object)
-	}
-}
-
-// Guess endpoint
-func guessHandler(w http.ResponseWriter, r *http.Request, guess *guess) {
-	game, err := Guess(guess)
-	if err != nil {
-		var status int
-		if err.Error() == "The requested game does not exist" {
-			status = http.StatusBadRequest
-		} else {
-			status = http.StatusInternalServerError
+		output, functionError := inputFunction(*object)
+		if functionError != nil {
+			if strings.HasPrefix(functionError.Error(), "400") {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+			} else {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
+			return
 		}
-		http.Error(w, err.Error(), status)
-		return
+		jsonResponse, _ := json.Marshal(output)
+		w.Write(jsonResponse)
 	}
-	jsonResponse, _ := json.Marshal(game)
-	w.Write(jsonResponse)
 }
 
 func allGamesHandler(w http.ResponseWriter, r *http.Request) {
@@ -179,8 +162,8 @@ func allGamesHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	log.Println("Starting, stand by")
-	http.HandleFunc("POST /game", decodeAndValidate[*newGame](createGameHandler))
-	http.HandleFunc("POST /guess", decodeAndValidate[*guess](guessHandler))
+	http.HandleFunc("POST /game", httpWrapper[*newGame, *game](CreateGame))
+	http.HandleFunc("POST /guess", httpWrapper[*guess, *game](Guess))
 	http.HandleFunc("GET /games", allGamesHandler)
 
 	log.Println("Server is up! Go play :)")
