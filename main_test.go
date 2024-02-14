@@ -90,3 +90,28 @@ func TestGuessOutOfBounds(t *testing.T) {
 		t.Fatalf("Guess Error must be about the guess being Out Of Bounds, but was %q", err)
 	}
 }
+
+func BenchmarkCreate(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		input := newGame{
+			Min: i,
+			Max: i + 100,
+		}
+		CreateGame(&input)
+	}
+}
+
+func BenchmarkCreateAndGuess(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		input := newGame{
+			Min: i,
+			Max: i + 50,
+		}
+		response, _ := CreateGame(&input)
+		guess := guess{
+			GameId: response.Id,
+			Guess:  i + 25,
+		}
+		Guess(&guess)
+	}
+}
