@@ -67,8 +67,8 @@ func TestGuessNonExistingGame(t *testing.T) {
 	if err == nil {
 		t.Fatalf(`Guess = %v, %q, want error to be returned, error`, response, err)
 	}
-	if err.Error() != "The requested game does not exist" {
-		t.Fatalf("Error must be about the game not existing")
+	if err.Error() != "400 The requested game does not exist" {
+		t.Fatalf("Error must be about the game not existing, but was %q", err)
 	}
 }
 
@@ -86,7 +86,7 @@ func TestGuessOutOfBounds(t *testing.T) {
 	if err == nil {
 		t.Fatalf(`Guess = %v, %q, want error to be returned`, response, err)
 	}
-	if err.Error() != "Guess is out of bounds, must be between 0 and 100" {
-		t.Fatalf("Guess Error must be about the guess being Out Of Bounds")
+	if err.Error() != "400 Guess is out of bounds, must be between 0 and 100" {
+		t.Fatalf("Guess Error must be about the guess being Out Of Bounds, but was %q", err)
 	}
 }
