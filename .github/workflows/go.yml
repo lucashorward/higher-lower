@@ -26,5 +26,5 @@ jobs:
       - name: Test
         run: go test -v ./...
 
-      - name: Test
+      - name: Benchmark
         run: go test -bench .
