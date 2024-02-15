@@ -7,7 +7,6 @@ import (
 	"math/rand"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
@@ -21,6 +20,11 @@ const (
 	Equal
 	None
 )
+
+type HandlerError struct {
+	error
+	StatusCode int
+}
 
 type newGame struct {
 	Min int `json:"min" validate:"required"`
@@ -56,13 +60,19 @@ func (result Result) EnumIndex() int {
 // All games, stored as a map of <gameId, *game>
 var games = make(map[string]*game)
 
-// Core creation functionality.
-// Creates a game, adds it to the games array, then returns it
-//
-// @throws if the Max is not higher than the Min value
+/*
+- Core creation functionality.
+
+- Creates a game, adds it to the games array, then returns it
+
+- @throws `HandlerError` if the Max is not higher than the Min value
+*/
 func CreateGame(inputData *newGame) (*game, error) {
 	if inputData.Min >= inputData.Max {
-		return &game{}, errors.New("Max must be higher than the Min")
+		return &game{}, HandlerError{
+			errors.New("Max must be higher than the Min"),
+			http.StatusBadRequest,
+		}
 	}
 
 	gameId := uuid.NewString()
@@ -84,20 +94,26 @@ func CreateGame(inputData *newGame) (*game, error) {
 /*
 - Core guessing functionality.
 
-- @throws if the provided gameId is not in the games map
+- @throws `HandlerError` if the provided gameId is not in the games map
 
-- @throws if the guess is not between the min and max of the game
+- @throws `HandlerError` if the guess is not between the min and max of the game
 */
 func Guess(inputGuess *guess) (*game, error) {
 	savedGame, exists := games[inputGuess.GameId]
 	if !exists {
-		return &game{}, errors.New("400 The requested game does not exist")
+		return &game{}, HandlerError{
+			errors.New("The requested game does not exist"),
+			http.StatusNotFound,
+		}
 	}
 	if savedGame.Ended {
 		return savedGame, nil
 	}
 	if inputGuess.Guess > savedGame.max || inputGuess.Guess < savedGame.min {
-		return &game{}, errors.New("400 Guess is out of bounds, must be between " + strconv.Itoa(savedGame.min) + " and " + strconv.Itoa(savedGame.max))
+		return &game{}, HandlerError{
+			errors.New("Guess is out of bounds, must be between " + strconv.Itoa(savedGame.min) + " and " + strconv.Itoa(savedGame.max)),
+			http.StatusBadRequest,
+		}
 	}
 	var result Result
 	ended := false
@@ -126,6 +142,17 @@ func Guess(inputGuess *guess) (*game, error) {
 	return updatedGame, nil
 }
 
+/*
+* This wraps http calls to prevent duplicate code. This function does:
+
+* JSON decoding
+
+* Validation based on `go-playground/validator/v10`
+
+  - Error handling:
+    returns the provided status code if the Error is a HandlerError (which has a statusCode)
+    returns InternalServerError if an error is returned without statusCode
+*/
 func httpWrapper[T any, K any](inputFunction func(T) (K, error)) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		decoder := json.NewDecoder(r.Body)
@@ -143,10 +170,10 @@ func httpWrapper[T any, K any](inputFunction func(T) (K, error)) func(http.Respo
 		}
 		output, functionError := inputFunction(*object)
 		if functionError != nil {
-			if strings.HasPrefix(functionError.Error(), "400") {
-				http.Error(w, err.Error(), http.StatusBadRequest)
+			if handlerError, ok := functionError.(HandlerError); ok {
+				http.Error(w, handlerError.Error(), handlerError.StatusCode)
 			} else {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+				http.Error(w, functionError.Error(), http.StatusInternalServerError)
 			}
 			return
 		}
@@ -155,6 +182,7 @@ func httpWrapper[T any, K any](inputFunction func(T) (K, error)) func(http.Respo
 	}
 }
 
+// Simply returns all games in a JSON response (no wrapper needed)
 func allGamesHandler(w http.ResponseWriter, r *http.Request) {
 	jsonResponse, _ := json.Marshal(games)
 	w.Write(jsonResponse)
