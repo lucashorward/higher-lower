@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package higherlower;
+
+message GuessRequest {
+    int32 guess = 1;
+}
+
+message GuessResponse {
+    enum Result {
+        RESULT_UNSPECIFIED = 0;
+        HIGHER = 1;
+        LOWER = 2;
+        CORRECT = 3;
+    }
+
+    Result result = 1;
+}
+
+message Game {
+    string gameId = 1;
+    int32 answer = 2;
+    bool ended = 3;
+    string result = 4;
+    int32 min = 5;
+    int32 max = 6;
+}
+
+message GameState {
+    repeated Game game = 1;
+}
+
+service HigherLowerGame {
+    // rpc MakeGuess(GuessRequest) returns (GuessResponse);
+    rpc GetGameState(GameState) returns (GameState);
+}
