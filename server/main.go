@@ -122,7 +122,7 @@ func Guess(inputGuess *guess) (*game, error) {
 	}
 	if inputGuess.Guess > savedGame.max || inputGuess.Guess < savedGame.min {
 		return &game{}, HandlerError{
-			errors.New("Guess is out of bounds, must be between " + strconv.Itoa(savedGame.min) + " and " + strconv.Itoa(savedGame.max)),
+			errors.New("guess is out of bounds, must be between " + strconv.Itoa(savedGame.min) + " and " + strconv.Itoa(savedGame.max)),
 			http.StatusBadRequest,
 		}
 	}

@@ -39,7 +39,7 @@ func TestGameCreationInvalidBoundaries(t *testing.T) {
 	if err == nil {
 		t.Fatalf(`CreateGame = %v, %q, want error to be returned`, response, err)
 	}
-	if err.Error() != "Max must be higher than the Min" {
+	if err.Error() != "max must be higher than the Min" {
 		t.Fatalf(`CreateGame = %v, %q, want error to be correct`, response, err)
 	}
 }
@@ -53,7 +53,7 @@ func TestGameCreationEqualBoundaries(t *testing.T) {
 	if err == nil {
 		t.Fatalf(`CreateGame = %v, %q, want error to be returned`, response, err)
 	}
-	if err.Error() != "Max must be higher than the Min" {
+	if err.Error() != "max must be higher than the Min" {
 		t.Fatalf(`CreateGame = %v, %q, want error to be correct`, response, err)
 	}
 }
@@ -67,7 +67,7 @@ func TestGuessNonExistingGame(t *testing.T) {
 	if err == nil {
 		t.Fatalf(`Guess = %v, %q, want error to be returned, error`, response, err)
 	}
-	if err.Error() != "The requested game does not exist" {
+	if err.Error() != "the requested game does not exist" {
 		t.Fatalf("Error must be about the game not existing, but was %q", err)
 	}
 }
@@ -86,7 +86,7 @@ func TestGuessOutOfBounds(t *testing.T) {
 	if err == nil {
 		t.Fatalf(`Guess = %v, %q, want error to be returned`, response, err)
 	}
-	if err.Error() != "Guess is out of bounds, must be between 0 and 100" {
+	if err.Error() != "guess is out of bounds, must be between 0 and 100" {
 		t.Fatalf("Guess Error must be about the guess being Out Of Bounds, but was %q", err)
 	}
 }
